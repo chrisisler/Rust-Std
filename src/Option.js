@@ -317,13 +317,15 @@ class Option {
         'Expected contained value to have type `Result`, instead is ' +
           containedType
       )
-    } else {
-      let { value, error } = this.value
-      if (this.value.isOk()) {
-        return Ok(Some(value))
-      }
-      return Err(error)
     }
+
+    if (this.value.isOk()) {
+      let value = this.value.unwrap()
+      return Ok(Some(value))
+    }
+
+    let error = this.value.unwrapErr()
+    return Err(error)
   }
 
   unwrapOrDefault() {
@@ -356,6 +358,11 @@ function None() {
 function Some(value) {
   if (this instanceof Some) {
     throw SyntaxError('Cannot use `new` keyword with `Some`')
+  }
+  if (value === void 0) {
+    throw TypeError(
+      'Cannot construct `Some` with `undefined` argument, instead use `None`'
+    )
   }
 
   if (_isOption(value)) {

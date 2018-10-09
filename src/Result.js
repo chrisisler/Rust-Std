@@ -1,3 +1,5 @@
+const { Some, None } = require('./Option')
+
 class Result {
   constructor(value, error) {
     if (value !== void 0) this.value = value
@@ -25,12 +27,7 @@ class Result {
   // Maps a `Result` to `Result` by applying a function to the `Ok` value.
   map(fn) {
     if (this.isOk()) {
-      let result = fn(this.value)
-      if (result.constructor.name === 'Result') {
-        // `result` is either `Ok` or `Err`, both are acceptable
-        return result
-      }
-      return Ok(result)
+      return Ok(fn(this.value))
     }
     return this
   }
@@ -38,12 +35,7 @@ class Result {
   // Maps a `Result` to `Result` by applying a function to the `Err` value.
   mapErr(fn) {
     if (this.isErr()) {
-      let result = fn(this.error)
-      if (result.constructor.name === 'Result') {
-        // If `result` is not `Err`, enforce that error results stay as errors
-        return result.isErr() ? result : Err(result.unwrap())
-      }
-      return Err(result)
+      return Err(fn(this.error))
     }
     return this
   }
@@ -89,7 +81,7 @@ class Result {
   andThen(fn) {
     if (this.isOk()) {
       let result = fn(this.value)
-      if (result.constructor.name !== 'Result') {
+      if (!_isResult(result)) {
         throw TypeError(
           `Expected function to return Result type, received ${typeof result}.`
         )
@@ -118,7 +110,7 @@ class Result {
       return this
     }
     let result = fn(this.error)
-    if (result.constructor.name !== 'Result') {
+    if (!_isResult(result)) {
       throw TypeError(
         `Expected function to return Result type, received ${typeof result}.`
       )
@@ -190,6 +182,33 @@ class Result {
     throw this.error
   }
 
+  /////////////////////////////////////////////////////////////////////////////
+  // Misc /////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  // Transposes a `Result` of an `Option` into an `Option` of a `Result`.
+  // `Ok(None)` will be mapped to `None`.
+  // `Ok(Some(_))` and `Err(_)` will be mapped to `Some(Ok(_))` and `Some(Err(_))`
+  transpose() {
+    if (this.isErr()) {
+      return Some(this)
+    }
+
+    let containedType = this.value.constructor.name
+    if (containedType !== 'Option') {
+      throw TypeError(
+        'Expected contained value to have type `Option`, instead is' +
+          containedType
+      )
+    }
+
+    if (this.value.isSome()) {
+      let value = this.value.unwrap()
+      return Some(Ok(value))
+    }
+    return None()
+  }
+
   // Try catch wrapper into `Result`.
   static try(fn) {
     try {
@@ -211,11 +230,35 @@ class Result {
   }
 }
 
+function _isResult(x) {
+  return x.constructor.name === 'Result'
+}
+
 function Ok(value) {
+  if (this instanceof Ok) {
+    throw SyntaxError('Cannot use `new` keyword with `Ok`')
+  }
+
+  if (_isResult(value)) {
+    if (value.isErr()) {
+      return new Result(void 0, value.unwrapErr())
+    }
+  }
+
   return new Result(value, void 0)
 }
 
 function Err(error) {
+  if (this instanceof Ok) {
+    throw SyntaxError('Cannot use `new` keyword with `Err`')
+  }
+
+  if (_isResult(error)) {
+    if (error.isOk()) {
+      return new Result(error.unwrap(), void 0)
+    }
+  }
+
   return new Result(void 0, error)
 }
 

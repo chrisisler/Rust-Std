@@ -1,12 +1,12 @@
 ## Introduction
 
+Todo
+
 ## Result
+
+For functions that may succeed for fail.
 
 ## Option
 
-Type `Option` represents an optional value:
-every `Option` is either `Some` and contains a value, or `None`, and does not.
+Expresses the presence or absence of a value.
 
-### Notes
-
-This library uses `.constructor` and thus is not meant for production use. ([Why?]( https://stackoverflow.com/questions/332422))
