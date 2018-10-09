@@ -53,9 +53,10 @@ class Result {
   /////////////////////////////////////////////////////////////////////////////
 
   // Returns an iterator over the possibly contained value.
-  iter() {
-    return this[Symbol.iterator]()
-  }
+  // TODO
+  // iter() {
+  //   return this[Symbol.iterator]()
+  // }
 
   // Returns an iterator over the possibly contained value.
   [Symbol.iterator]() {
@@ -196,6 +197,17 @@ class Result {
     } catch (error) {
       return Err(error)
     }
+  }
+
+  static default() {
+    throw Error('unimplemented')
+  }
+
+  static from(val) {
+    if (val.constructor.toString().includes('Error')) {
+      return Err(val)
+    }
+    return Ok(val)
   }
 }
 
