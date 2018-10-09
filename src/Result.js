@@ -1,4 +1,3 @@
-// Private
 class Result {
   constructor(value, error) {
     if (value !== void 0) this.value = value
@@ -61,12 +60,11 @@ class Result {
   // Returns an iterator over the possibly contained value.
   [Symbol.iterator]() {
     let taken = false
-    let { isOk, value, error } = this
     return {
-      next() {
-        if (taken) {
-          taken = false
-          let v = isOk() ? value : error
+      next: () => {
+        if (!taken) {
+          taken = true
+          let v = this.isOk() ? this.value : this.error
           return { value: v, done: false }
         }
         return { done: true }
@@ -98,6 +96,10 @@ class Result {
       return result
     }
     return this
+  }
+
+  flatMap(fn) {
+    return this.andThen(fn)
   }
 
   // Returns `other` if the result is `Err`, otherwise returns the `Ok` value of `this`.
