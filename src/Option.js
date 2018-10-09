@@ -5,6 +5,10 @@ class Option {
     if (value !== void 0) {
       this.value = value
     }
+
+    // this.__proto__[Symbol.toStringTag] =
+    //   value === void 0 ? '<None>' : `<Some(_)>`
+    //   value === void 0 ? '<None>' : `<Some(${String(value)})>`
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -18,7 +22,6 @@ class Option {
 
   // Return `true` if the option is a `None` value.
   isNone() {
-    console.log('this is:', this)
     return !this.isSome()
   }
 
@@ -70,10 +73,7 @@ class Option {
   map(fn) {
     if (this.isSome()) {
       let mapped = fn(this.value)
-      // if (_isOption(mapped)) {
-      //   return mapped
-      // }
-      return Some(mapped)
+      return Some(fn(this.value))
     }
     return this
   }
@@ -82,11 +82,7 @@ class Option {
   // provided alternative (if `None`).
   mapOr(altValue, fn) {
     if (this.isSome()) {
-      let mapped = fn(this.value)
-      // if (_isOption(mapped)) {
-      //   return mapped
-      // }
-      return Some(mapped)
+      return Some(fn(this.value))
     }
     return altValue
   }
@@ -95,11 +91,7 @@ class Option {
   // an alternative (if `None`).
   mapOrElse(computerAlt, fn) {
     if (this.isSome()) {
-      let mapped = fn(this.value)
-      // if (_isOption(mapped)) {
-      //   return mapped
-      // }
-      return Some(mapped)
+      return Some(fn(this.value))
     }
     return computerAlt()
   }
@@ -174,6 +166,7 @@ class Option {
     return this
   }
 
+  // Alias for `Option#andThen`.
   flatMap(fn) {
     return this.andThen(fn)
   }
@@ -354,14 +347,23 @@ function _isOption(x) {
 }
 
 function None() {
+  if (this instanceof None) {
+    throw SyntaxError('Cannot use `new` keyword with `None`')
+  }
   return new Option(void 0)
 }
 
 function Some(value) {
-  // if (_isOption(value)) {
-  //   Will not work when `Option` internally uses `function` instead of `class`.
-  //   return new Option(value.value)
-  // }
+  if (this instanceof Some) {
+    throw SyntaxError('Cannot use `new` keyword with `Some`')
+  }
+
+  if (_isOption(value)) {
+    if (value.isSome()) {
+      return new Option(value.unwrap())
+    }
+    return new Option(void 0)
+  }
   return new Option(value)
 }
 
