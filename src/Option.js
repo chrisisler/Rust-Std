@@ -1,4 +1,4 @@
-const { Ok, Err } = require('./Result')
+const { Ok, Err } = require('./result')
 
 class Option {
   constructor(value) {
@@ -72,7 +72,6 @@ class Option {
   // Maps an `Option` by applying a function to a contained value.
   map(fn) {
     if (this.isSome()) {
-      let mapped = fn(this.value)
       return Some(fn(this.value))
     }
     return this
@@ -82,18 +81,18 @@ class Option {
   // provided alternative (if `None`).
   mapOr(altValue, fn) {
     if (this.isSome()) {
-      return Some(fn(this.value))
+      return fn(this.value)
     }
     return altValue
   }
 
   // Applies a function to the contained value (if `Some`), or computes
   // an alternative (if `None`).
-  mapOrElse(computerAlt, fn) {
+  mapOrElse(computeAltValue, fn) {
     if (this.isSome()) {
-      return Some(fn(this.value))
+      return fn(this.value)
     }
-    return computerAlt()
+    return computeAltValue()
   }
 
   // Transform the `Option` into a `Result`, mapping `Some(v)` to `Ok(v)` and
@@ -120,21 +119,19 @@ class Option {
   /////////////////////////////////////////////////////////////////////////////
 
   // Returns an iterator over the possibly contained value.
-  // TODO
-  // iter() {
-  //   return this[Symbol.iterator]
-  // }
-
-  // Returns an iterator over the possibly contained value.
-  [Symbol.iterator]() {
+  iter() {
+    // return new OptionIterator(this)
     let taken = false
     return {
       next: () => {
-        if (taken === true || this.isNone()) {
+        if (this.isNone() || taken === true) {
           return { done: true }
         }
         taken = true
         return { value: this.value, done: false }
+      },
+      [Symbol.iterator]: function() {
+        return this
       }
     }
   }
@@ -152,13 +149,13 @@ class Option {
   }
 
   // Returns `None` if the option is `None`, otherwise calls `fn` with the
-  // contained value and returns the result.
+  // contained value and returns the mapped option.
   andThen(fn) {
     if (this.isSome()) {
       let mapped = fn(this.value)
       if (!_isOption(mapped)) {
         throw TypeError(
-          'Expected `fn` to return `Option` type, received ' + typeof mapped
+          'Expected `fn` to return `Option` type, received ' + _getType(mapped)
         )
       }
       return mapped
@@ -166,7 +163,7 @@ class Option {
     return this
   }
 
-  // Alias for `Option#andThen`.
+  // Alias for `andThen`.
   flatMap(fn) {
     return this.andThen(fn)
   }
@@ -180,7 +177,7 @@ class Option {
       let ret = predicate(this.value)
       if (typeof ret !== 'boolean') {
         throw TypeError(
-          'Expected `predicate` to return boolean, received ' + typeof ret
+          'Expected `predicate` to return boolean, received ' + _getType(ret)
         )
       }
       if (ret === true) {
@@ -209,7 +206,7 @@ class Option {
     let computed = fn()
     if (!_isOption(computed)) {
       throw TypeError(
-        'Expected `fn` to return `Option` type, received ' + typeof computed
+        'Expected `fn` to return `Option` type, received ' + _getType(computed)
       )
     }
     return computed
@@ -348,6 +345,12 @@ function _isOption(x) {
   return x.constructor.name === 'Option'
 }
 
+function _getType(any) {
+  let { constructor } = any
+  let className = constructor.name
+  return className || Object.prototype.toString.call(any)
+}
+
 function None() {
   if (this instanceof None) {
     throw SyntaxError('Cannot use `new` keyword with `None`')
@@ -366,10 +369,7 @@ function Some(value) {
   }
 
   if (_isOption(value)) {
-    if (value.isSome()) {
-      return new Option(value.unwrap())
-    }
-    return new Option(void 0)
+    return new Option(value.unwrapOr(void 0))
   }
   return new Option(value)
 }

@@ -1,4 +1,4 @@
-const { Some, None } = require('./Option')
+const { Some, None } = require('./option')
 
 class Result {
   constructor(value, error) {
