@@ -196,6 +196,7 @@ class Result {
 
     let containedType = this.value.constructor.name
     if (containedType !== 'Option') {
+      // What does Rust do in this case?
       throw TypeError(
         'Expected contained value to have type `Option`, instead is' +
           containedType
@@ -231,7 +232,7 @@ class Result {
 }
 
 function _isResult(x) {
-  return x.constructor.name === 'Result'
+  return x != null && x.constructor.name === 'Result'
 }
 
 function Ok(value) {

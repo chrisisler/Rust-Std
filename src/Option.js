@@ -191,6 +191,9 @@ class Option {
   // Returns the `Option` if it contains a value, otherwise returns `alt`.
   // If passing the result of a function call, prefer using `orElse`.
   or(altOption) {
+    if (!_isOption(altOption)) {
+      throw TypeError('Expected `Option` type, received ' + _getType(altOption))
+    }
     if (this.isSome()) {
       return this
     }
@@ -213,9 +216,12 @@ class Option {
   }
 
   // Returns `Some` if only one of `self`, `alt` is `Some`, otherwise returns `None`.
-  xor(alt) {
-    if (this.isSome() && alt.isNone()) return this
-    if (this.isNone() && alt.isSome()) return alt
+  xor(altOption) {
+    if (!_isOption(altOption)) {
+      throw TypeError('Expected `Option` type, received ' + _getType(altOption))
+    }
+    if (this.isSome() && altOption.isNone()) return this
+    if (this.isNone() && altOption.isSome()) return altOption
     return None()
   }
 
@@ -252,7 +258,12 @@ class Option {
       }
 
       if (_isOption(computed)) {
-        this.value = computed.value
+        if (computed.isNone()) {
+          throw TypeError(
+            'Expected Option returned from `fn` not to be `None` variant'
+          )
+        }
+        this.value = computed.unwrap()
       } else {
         this.value = computed
       }
@@ -275,7 +286,7 @@ class Option {
       return this
     }
     let taken = this.value
-    this.value = void 0
+    delete this.value
     return Some(taken)
   }
 
@@ -287,7 +298,7 @@ class Option {
   //   old //=> Some(2)
   replace(v) {
     if (v === void 0) {
-      throw TypeError('Expected parameter `v` not to be `undefined`')
+      throw TypeError('Expected argument not to be `undefined`')
     }
 
     if (this.isSome()) {
@@ -302,7 +313,8 @@ class Option {
 
   // Transposes an `Option` of a `Result` into a `Result` of an `Option`.
   // `None` will be mapped to `Ok(None)`.
-  // `Some(Ok(_))` and `Some(Err(_))` will be mapped to `Ok(Some(_))` and `Err(_)`.
+  // `Some(Ok(_))` will be mapped to `Ok(Some(_))`.
+  // `Some(Err(_))` will be mapped to `Err(_)`.
   transpose() {
     if (this.isNone()) {
       return Ok(this)
@@ -325,24 +337,23 @@ class Option {
     return Err(error)
   }
 
-  unwrapOrDefault() {
-    if (this.isSome()) {
-      return this.value
-    }
-    return Option.default()
-  }
+  // Unimplementable due to lack of Default::default() for Option<T: Default>
+  // unwrapOrDefault() {}
 
   static default() {
     return None()
   }
 
   static from(val) {
+    if (val === void 0) {
+      return None()
+    }
     return Some(val)
   }
 }
 
 function _isOption(x) {
-  return x.constructor.name === 'Option'
+  return x != null && x.constructor.name === 'Option'
 }
 
 function _getType(any) {
@@ -374,4 +385,21 @@ function Some(value) {
   return new Option(value)
 }
 
-module.exports = { None, Some }
+function OptionExport() {
+  if (this instanceof OptionExport) {
+    throw SyntaxError('`Option` is not a constructor')
+  }
+  throw SyntaxError('`Option` is not a function')
+}
+OptionExport.default = Option.default
+OptionExport.from = Option.from
+
+module.exports = {
+  None: None,
+  Some: Some,
+  Option: OptionExport
+  // Option: {
+  //   default: Option.default,
+  //   from: Option.from
+  // }
+}
